@@ -1,0 +1,102 @@
+#encoding=utf-8
+import re
+from bs4 import BeautifulSoup
+import requests
+import datetime
+import pandas as pd
+import os,sys
+
+Header  =  {
+    'Referer': 'http://hotel.meituan.com/haerbin/',
+    'Host': 'hotel.meituan.com',
+    'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.104 Safari/537.36 Core/1.53.3441.400 QQBrowser/9.6.12540.400',
+    'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Encoding':'gzip, deflate, sdch'
+}
+# url='http://hotel.meituan.com/haerbin/pn1'
+f = open('E:\Meituan.txt', 'ab+')
+
+base_url = 'http://hotel.meituan.com/haerbin/pn'
+
+#时间函数
+today=datetime.date.today()
+tomorrow = today + datetime.timedelta(days=1)
+# print(today,tomorrow)
+# time.strftime("%Y-%m-%d")
+
+q=0#记录酒店个数
+
+print('***********************************哈尔滨美团酒店综合查询******************************************\n')
+print('***************************************************************************************************\n')
+print('***************************************************************************************************\n')
+print('***************************************************************************************************\n')
+print('***************************************************************************************************\n')
+print('***************************************************************************************************\n')
+print('***************************************************************************************************\n')
+print('***************************************************************************************************\n')
+for i in range(1,51):
+
+    each_url = base_url + str(i)
+    print(each_url)
+
+    r=requests.get(base_url,params=Header)
+    # print(r.headers,'\n',r.content,'\n',r.text)
+    soup = BeautifulSoup(r.text,'html.parser')
+
+    link = soup.findAll('a',attrs={'href':re.compile( 'http.*?'),'class':'poi-title'})
+    # print(type(link))
+
+    DirofHotal = {}#数据存储字典
+# new_url 地址集
+# priceofhotal 价格集
+
+    for i in link:
+        price =  soup.find('em',attrs={'data-v-69bb0c9c':''})
+    # priceofhotal.append(str(price.string))
+        a=str(i['href'])
+    # print(i['href'],type(a),'\n')
+        new_url = a+'?ci='+str(today)+'&co='+str(tomorrow)
+        price = str(price.string)
+        DirofHotal[new_url] = price
+    # new_url.append(a+'?ci='+str(today)+'&co='+str(tomorrow))
+#Hotal
+# print(DirofHotal,'\n',DirofHotal.keys())
+
+    for i in DirofHotal:
+        q=q+1
+        hotalrequet = requests.get(i, params=Header)
+
+        soup = BeautifulSoup(hotalrequet.text, 'html.parser')
+#name
+        name = soup.find('span',class_='fs26 fc3 pull-left bold')
+        print('酒店网站地址：',i,'\n','酒店名称：',name.string)
+#Localtion
+        localtion = soup.find('div', class_="fs12 mt6 mb10")
+        localed = str(localtion.span.string)
+        print('酒店地址：',localed)
+#Grade
+        grade = soup.find('span',class_= 'fs34')
+        print('酒店评分',grade.string)
+#Comment
+        comment =  soup.find('a',class_='openComment')
+        commnentstr = str(comment.string)
+        patten = re.compile("\d+")
+        commentnum = re.search(patten,commnentstr)
+        print('评论数：',commentnum.group())
+#Price
+        print('最近价格：',DirofHotal[i],'起','\n')
+#写入文件
+        f.write(('站长推荐之第'+str(q)+'家酒店'+'\r\n').encode('UTF-8'))
+        f.write(('酒店网址:'+i+'\r\n').encode('UTF-8'))
+        f.write(('酒店名:'+name.string+'\r\n').encode('UTF-8'))
+        f.write(('酒店地址:' + localed + '\r\n').encode('UTF-8'))
+        f.write(('综合评分:'+grade.string+'\r\n').encode('UTF-8'))
+        f.write(('评论数:'+commentnum.group()+'\r\n').encode('UTF-8'))
+        f.write(('最近价格：'+DirofHotal[i]+'起'+'\r\n\n').encode('UTF-8'))
+
+
+f.close()
+print(q)
+
+
+# http://hotel.meituan.com/1541614/?ci=2017-12-04&co=2017-12-05
